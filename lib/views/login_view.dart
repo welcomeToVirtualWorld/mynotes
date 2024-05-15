@@ -1,7 +1,7 @@
-import 'package:firebase_auth/firebase_auth.dart'; 
-import 'package:firebase_core/firebase_core.dart'; 
 import 'package:flutter/material.dart';
-import 'package:mynotes/firebase_options.dart';
+import 'package:mynotes/constants/routes.dart';
+import 'package:mynotes/services/auth/auth_service.dart';
+import 'package:mynotes/util/show_error_dialog.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -11,7 +11,7 @@ class LoginView extends StatefulWidget {
 }
 
 class _LoginViewState extends State<LoginView> {
-
+  
   late final TextEditingController _email;
   late final TextEditingController _password;
 
@@ -34,55 +34,56 @@ class _LoginViewState extends State<LoginView> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: const Text("Login"), 
+        title: const Text("Login"),
       ),
-      body: FutureBuilder(
-        future: Firebase.initializeApp(
-                    options: DefaultFirebaseOptions.currentPlatform
-                  ),
-        builder: (context,snapshot) {
-          switch(snapshot.connectionState){
-            case ConnectionState.done:
-            return Column(
-            children: [
-             TextField(
-                controller: _email,
-                autocorrect: false,
-                enableSuggestions: false,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  hintText: "Enter Your Email"
-                )
-              ,
-              ),
-             TextField(
-              controller: _password,
-              obscureText: true,
-              autocorrect: false,
-              enableSuggestions: false,
-              decoration: const InputDecoration(
-                hintText: "Enter Your Password"
-              ),
-              ),
-              TextButton(
-                onPressed: () async {
-              
-                  final email = _email.text;
-                  final password = _password.text;
-                  final userCridentail = await FirebaseAuth.instance.signInWithEmailAndPassword(
-                    email: email,
-                    password: password
+      body: Column(
+        children: [
+          TextField(
+            controller: _email,
+            autocorrect: false,
+            enableSuggestions: false,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(hintText: "Enter Your Email"),
+          ),
+          TextField(
+            controller: _password,
+            obscureText: true,
+            autocorrect: false,
+            enableSuggestions: false,
+            decoration: const InputDecoration(hintText: "Enter Your Password"),
+          ),
+          TextButton(
+            onPressed: () async {
+              final email = _email.text;
+              final password = _password.text;
+              try {
+                await AuthService.firebase().logIn(email: email, password: password,);
+
+                final user = AuthService.firebase().currentUser;
+                if (user?.isEmailVerified == true) {
+                  Navigator.of(context).pushNamedAndRemoveUntil(
+                    notesRoute,
+                    (route) => false,
                   );
-                  print(userCridentail);
-                },
-                child: const Text('Login'),
-              ),
-            ],
-          );
-          default:
-          return const Text("Loading...");
-          }
-        }
+                } else {
+                  Navigator.of(context).pushNamedAndRemoveUntil(
+                    verifyEmailRoute,
+                    (route) => false,
+                  );
+                }
+              } catch (e) {
+                await showErrorDialog(context, e.toString());
+              }
+            },
+            child: const Text('Login'),
+          ),
+          TextButton(
+              onPressed: () {
+                Navigator.of(context)
+                    .pushNamedAndRemoveUntil(registerRoute, (route) => false);
+              },
+              child: const Text("Note Registered Yet? Register here!"))
+        ],
       ),
     );
   }

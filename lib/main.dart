@@ -1,8 +1,11 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:mynotes/firebase_options.dart';
+import 'package:mynotes/constants/routes.dart';
+import 'package:mynotes/services/auth/auth_service.dart';
 import 'package:mynotes/views/login_view.dart';
+import 'package:mynotes/views/notes/new_note_view.dart';
+import 'package:mynotes/views/notes/notes_view.dart';
+import 'package:mynotes/views/register_view.dart';
+import 'package:mynotes/views/verify_email_view.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,42 +17,41 @@ void main() {
         useMaterial3: true,
       ),
       home: const HomePage(),
+      routes: {
+        loginRoute: (context) => const LoginView(),
+        registerRoute: (context) => const RegisterView(),
+        notesRoute: (context) => const NotesView(), // Named Routes
+        verifyEmailRoute: (context) => const VerifyEmailView(),
+        newNoteRoute:(context)=> const NewNoteView(),
+      },
     ),
   );
 }
 
-
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
-    @override
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: const Text("Home"), 
-      ),
-      body: FutureBuilder(
-        future: Firebase.initializeApp(
-                    options: DefaultFirebaseOptions.currentPlatform
-                  ),
-                
-        builder: (context,snapshot) {
-          switch(snapshot.connectionState){
+    return FutureBuilder(
+        future: AuthService.firebase().initialize(),
+        builder: (context, snapshot) {
+          switch (snapshot.connectionState) {
             case ConnectionState.done:
-            final user = FirebaseAuth.instance.currentUser;
-            if(user?.emailVerified == true){
-              print("You are verified user.");
-            }else{
-              print("You need to verify your email first.");
-            }
-              return const Text("Done");
+              final user = AuthService.firebase().currentUser;
+              if (user != null) {
+                if (user.isEmailVerified == true) {
+                  return const NotesView();
+                } else {
+                  return const VerifyEmailView();
+                }
+              } else {
+                return const LoginView();
+              }
             default:
               return const Text("Loading...");
           }
-        }
-      ),
-    );
+        });
   }
 }
 
@@ -66,7 +68,3 @@ class _MyWidgetState extends State<MyWidget> {
     return const Placeholder();
   }
 }
-
-
-
-
